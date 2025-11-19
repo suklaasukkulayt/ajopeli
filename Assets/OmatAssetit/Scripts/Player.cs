@@ -14,6 +14,11 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if(GameManager.Instance.Phase != RacePhase.Racing)
+        {
+            return;
+        }
+
         float move = Input.GetAxis("Vertical") * speed * Time.deltaTime;
         float turn = Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime;
         //Debug.Log(move);

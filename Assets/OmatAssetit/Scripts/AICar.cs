@@ -12,7 +12,11 @@ public class AICar : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        if(GameManager.Instance.Phase != RacePhase.Racing)
+        {
+            return;
+        }
+        
         Transform target = waypoints[currentWaypointIndex];
         Vector3 targetXZ = new Vector3(target.position.x, transform.position.y, target.position.z);
         Vector3 direction = (targetXZ - transform.position).normalized;
