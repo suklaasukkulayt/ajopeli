@@ -2,10 +2,14 @@ using System.Collections;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PlayerUprightAndShortcuts_TYaw90 : MonoBehaviour
+public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
 {
     [Header("Teleport & shortcuts")]
     public Vector3 teleportPosition = new Vector3(13f, 0f, 47f);
+
+    [Header("Auto-fall reset")]
+    [Tooltip("Jos pelaajan Y (korkeus) laskee alle tämän arvon, suoritetaan teleport samaan tapaan kuin T-näppäin.")]
+    public float fallYThreshold = -5f;
 
     [Header("Tilt detection")]
     [Tooltip("Kulma (asteina) jonka ylityttyä automaattinen korjaus käynnistyy.")]
@@ -18,7 +22,7 @@ public class PlayerUprightAndShortcuts_TYaw90 : MonoBehaviour
     public float autoCorrectionDegreesPerSecond = 360f;
     [Tooltip("Kun lopetetaan korjaus, jos etäisyys tavoitteeseen alle tämän verran asteina, korjaus päättyy.")]
     public float finishAngleEpsilon = 0.5f;
-    [Tooltip("Jos true, korjauksessa korjataan vain Y-aksele (yaw) — pelaajan pitch/roll nollataan. Jos false, käytetään koko LookDirection-orientaatioita.")]
+    [Tooltip("Jos true, korjauksessa korjataan vain Y-aksele (yaw) — pelaajan pitch/roll nollataan.")]
     public bool correctOnlyYaw = true;
 
     [Header("Camera settings")]
@@ -64,25 +68,35 @@ public class PlayerUprightAndShortcuts_TYaw90 : MonoBehaviour
         // T painallus -> teleporttaa JA asettaa katseen täsmälleen Y=90°
         if (Input.GetKeyDown(KeyCode.T))
         {
-            // Teleport position fysiikan kautta
-            rb.position = teleportPosition;
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-
-            // Target rotation: täsmälleen yaw = 90°
-            Quaternion target90 = Quaternion.Euler(0f, 90f, 0f);
-
-            // Jos kamerasi ei ole child-player ja haluat kameran katseen myös päivitettävän heti:
-            if (mainCamera != null)
-            {
-                Vector3 camEuler = mainCamera.transform.eulerAngles;
-                // säilytä pitch (x) ja roll (z) kamerassa, mutta aseta yaw = 90
-                mainCamera.transform.rotation = Quaternion.Euler(camEuler.x, 90f, camEuler.z);
-            }
-
-            // Käynnistä sulava korjaus kohti 90° yaw:ta
-            StartAutoCorrection(target90);
+            DoTeleportAsT();
         }
+
+        // Auto-fall reset: jos pelaajan y < threshold -> teleporttaa kuten T
+        if (transform.position.y < fallYThreshold)
+        {
+            DoTeleportAsT();
+        }
+    }
+
+    void DoTeleportAsT()
+    {
+        // Teleport position fysiikan kautta
+        rb.position = teleportPosition;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+
+        // Target rotation: täsmälleen yaw = 90°
+        Quaternion target90 = Quaternion.Euler(0f, 90f, 0f);
+
+        // Päivitä kameraan yaw heti, jos se ei ole playerin child tai haluat sen päivittää
+        if (mainCamera != null)
+        {
+            Vector3 camEuler = mainCamera.transform.eulerAngles;
+            mainCamera.transform.rotation = Quaternion.Euler(camEuler.x, 90f, camEuler.z);
+        }
+
+        // Käynnistä sulava korjaus kohti 90° yaw:ta
+        StartAutoCorrection(target90);
     }
 
     bool IsTiltedBeyondThreshold()
@@ -176,5 +190,11 @@ public class PlayerUprightAndShortcuts_TYaw90 : MonoBehaviour
             Gizmos.color = Color.green;
             Gizmos.DrawLine(transform.position, transform.position + autoTargetRotation * Vector3.forward * 2f);
         }
+
+        // Piirrä myös alaraja-linja (visuaalinen apu tasolle)
+        Gizmos.color = Color.yellow;
+        Vector3 from = new Vector3(transform.position.x - 2f, fallYThreshold, transform.position.z - 2f);
+        Vector3 to   = new Vector3(transform.position.x + 2f, fallYThreshold, transform.position.z + 2f);
+        Gizmos.DrawLine(from, to);
     }
 }
