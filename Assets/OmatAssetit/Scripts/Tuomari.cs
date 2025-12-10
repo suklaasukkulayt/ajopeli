@@ -4,7 +4,7 @@ public class Tuomari : MonoBehaviour
 {
     public TMP_Text resultText;
 
-
+    public int kierrostenMaara = 3;
     private bool winnerDeclared = false;
 
 
@@ -16,29 +16,47 @@ public class Tuomari : MonoBehaviour
     {
         CarIdentify id = car.GetComponent<CarIdentify>();
 
-        string winnerName = id.displayName;
-        
+        if(id == null)
+        {
+            return;
+        }
 
-        if(id.kind == CarKind.Player)
+
+        LapCounter lap = car.GetComponent<LapCounter>();
+
+
+        //string winnerName = id.displayName;
+
+
+        if (id.kind == CarKind.Player)
         {
             var validator = car.GetComponent<PelaajanKierrosTarkastus>();
-            if(validator == null)
+            if (validator == null)
             {
                 Debug.LogError("Puuttuu PelaajanKierrosTarkastus-skripti");
                 return;
             }
 
-            if(!validator.AllVisitedThisLap)
+            if (!validator.AllVisitedThisLap)
             {
                 Debug.Log("Player crossed the finish line, but hasn't hit all the checkpoints!");
                 return;
             }
+            int tmpLap = lap.lapsCompleted;
+            validator.UpdateLapsText(tmpLap + 1, kierrostenMaara);
+            validator.ResetLap();
         }
-    if (winnerDeclared == false)
-    {
+        lap.lapsCompleted++;
+
+
+    if (winnerDeclared == false && lap.lapsCompleted >= kierrostenMaara)
+     {
+        string winnerName = id.displayName;
         winnerDeclared = true;
         resultText.text = $"WINNER: {winnerName}";
+        GameManager.Instance.Phase = RacePhase.Finished;
         Debug.Log($"WINNER: {winnerName}");
+        
     }
     }
 }
