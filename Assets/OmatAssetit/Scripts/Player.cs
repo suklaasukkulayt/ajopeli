@@ -70,11 +70,11 @@ public class Player : MonoBehaviour
             }
             else if (cooldownTimer > 0f)
             {
-                uiText.text = $"Seuraavaan boostiin: {cooldownTimer:F1}s";
+                uiText.text = $"{cooldownTimer:F1}s to the next boost!";
             }
             else
             {
-                uiText.text = "Boost valmis! (Paina B)";
+                uiText.text = "Boost ready!";
             }
         }
         // --- BOOST-LOGIIKKA LOPPUU ---
