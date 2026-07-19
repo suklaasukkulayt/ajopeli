@@ -14,8 +14,10 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     [Header("Tilt detection")]
     [Tooltip("Kulma (asteina) jonka ylityttyä automaattinen korjaus käynnistyy.")]
     public float angleThreshold = 45f;
-    [Tooltip("Estää turhan herkästi laukeamisen; jos >0, vaaditaan myös tämä minimipyörimisnopeus.")]
+    [Tooltip("Estää turhan herkästi laukeamisen; jos >0, vaaditaan myös tämä minimipyörimisnopeus NOPEALLE kaatumiselle.")]
     public float angularVelocityMin = 0.5f;
+    [Tooltip("Jos auto on kallellaan yli angleThresholdin tämän monta sekuntia yhtäjaksoisesti (esim. levossa katolla/kyljellä, pyörimisnopeus jo nollassa), korjaus käynnistyy silti tämän ajan jälkeen.")]
+    public float stuckTimeThreshold = 1.5f;
 
     [Header("Smooth auto-correction")]
     [Tooltip("Kuinka monta astetta per sekunti voidaan kääntyä automaattisessa korjauksessa. Suurempi = nopeampi korjaus.")]
@@ -35,11 +37,25 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     // Sisäiset tilat
     bool isAutoCorrecting = false;
     Quaternion autoTargetRotation = Quaternion.identity;
+    float tiltTimer = 0f;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
-        mainCamera = Camera.main;
+
+        // Haetaan kamera ensisijaisesti omista lapsista (Playerin sisällä oleva "Camera"),
+        // koska se ei riipu MainCamera-tagista. Camera.main toimii vain, jos jokin AKTIIVINEN
+        // kamera on tagattu "MainCamera" -- tällä hetkellä se ei ole voimassa tässä scenessä.
+        mainCamera = GetComponentInChildren<Camera>();
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera == null)
+        {
+            Debug.LogWarning("[PlayerUprightAndShortcuts_AutoFallReset] Kameraa ei löytynyt Playerin lapsista eikä Camera.main:sta. useCameraYaw ei toimi.");
+        }
     }
 
     void FixedUpdate()
@@ -84,12 +100,17 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
         rb.position = teleportPosition;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        tiltTimer = 0f;
 
         // Target rotation: täsmälleen yaw = 90°
         Quaternion target90 = Quaternion.Euler(0f, 90f, 0f);
 
-        // Päivitä kameraan yaw heti, jos se ei ole playerin child tai haluat sen päivittää
-        if (mainCamera != null)
+        // Päivitä kameran yaw suoraan VAIN jos kamera EI ole Playerin lapsi.
+        // Jos se ON lapsi (kuten nyt), kamera seuraa Playerin rotaatiota automaattisesti
+        // alla olevan autokorjauksen kautta -- kameran world-rotaation pakottaminen tässä
+        // rikkoisi kameran paikallisen rotaation ja sotkisi esim. LookBackCameran tallentaman
+        // "eteenpäin"-asennon.
+        if (mainCamera != null && !mainCamera.transform.IsChildOf(transform))
         {
             Vector3 camEuler = mainCamera.transform.eulerAngles;
             mainCamera.transform.rotation = Quaternion.Euler(camEuler.x, 90f, camEuler.z);
@@ -102,14 +123,24 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     bool IsTiltedBeyondThreshold()
     {
         float angleFromUp = Vector3.Angle(transform.up, Vector3.up);
-        if (angleFromUp <= angleThreshold) return false;
-
-        if (angularVelocityMin > 0f)
+        if (angleFromUp <= angleThreshold)
         {
-            if (rb.angularVelocity.magnitude < angularVelocityMin) return false;
+            tiltTimer = 0f;
+            return false;
         }
 
-        return true;
+        // Nopea kaatuminen/lennossa pyöriminen: reagoi heti kun pyörimisnopeus riittää
+        if (angularVelocityMin <= 0f || rb.angularVelocity.magnitude >= angularVelocityMin)
+        {
+            tiltTimer = 0f;
+            return true;
+        }
+
+        // Hidas/pysähtynyt tapaus: auto makaa kyljellään tai katolla paikallaan, eikä
+        // pyörimisnopeus enää ylitä angularVelocityMin-rajaa. Lasketaan aikaa ja
+        // käynnistetään korjaus joka tapauksessa stuckTimeThresholdin jälkeen.
+        tiltTimer += Time.fixedDeltaTime;
+        return tiltTimer >= stuckTimeThreshold;
     }
 
     // Aloittaa automaattisen korjauksen; jos target ei annettu, käytetään kameran yaw:ia / forwardia
@@ -126,6 +157,7 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
 
         autoTargetRotation = target;
         isAutoCorrecting = true;
+        tiltTimer = 0f;
 
         // Nollaa pyörimisnopeus niin ei rikkoudu slerp:illä
         rb.angularVelocity = Vector3.zero;

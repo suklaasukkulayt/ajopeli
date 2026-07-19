@@ -20180,7 +20180,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &1343382159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20207,10 +20207,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3615c725a70fd34db4dcad6e8edfbf9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerControlShortcuts_Rigidbody
-  teleportPosition: {x: 13, y: 0, z: 47}
+  teleportPosition: {x: 13.73, y: 0.09, z: 46.79}
   fallYThreshold: -5
   angleThreshold: 45
   angularVelocityMin: 0.5
+  stuckTimeThreshold: 1.5
   autoCorrectionDegreesPerSecond: 360
   finishAngleEpsilon: 0.5
   correctOnlyYaw: 1
