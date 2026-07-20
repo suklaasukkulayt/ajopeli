@@ -53,7 +53,7 @@ public class Tuomari : MonoBehaviour
      {
         string winnerName = id.displayName;
         winnerDeclared = true;
-        resultText.text = $"WINNER: {winnerName}";
+        resultText.text = $"<mark>WINNER: {winnerName}</mark>";
         GameManager.Instance.Phase = RacePhase.Finished;
         Debug.Log($"WINNER: {winnerName}");
         
