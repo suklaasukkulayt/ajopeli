@@ -39,6 +39,12 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     Quaternion autoTargetRotation = Quaternion.identity;
     float tiltTimer = 0f;
 
+    // Julkinen lukutila muille skripteille (esim. Player.cs), jotta ne voivat väistää
+    // antamasta ohjauskomentoja silloin kun tämä skripti suoristaa autoa väkisin --
+    // muuten kaksi skriptiä kutsuvat rb.MoveRotation:ia samassa FixedUpdatessa ja
+    // "riitelevät" rotaatiosta, mikä lukitsee ohjauksen kunnes irrottaa napit.
+    public bool IsAutoCorrecting => isAutoCorrecting;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -87,11 +93,35 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
             DoTeleportAsT();
         }
 
-        // Auto-fall reset: jos pelaajan y < threshold -> teleporttaa kuten T
+        // Auto-fall reset: jos pelaajan y < threshold -> nostetaan takaisin samaan
+        // x/z-sijaintiin y=0:aan (EI takaisin alkuun, se on vain T-näppäimelle).
         if (transform.position.y < fallYThreshold)
         {
-            DoTeleportAsT();
+            DoFallSafetyTeleport();
         }
+    }
+
+    void DoFallSafetyTeleport()
+    {
+        // Pudonnut kartan/terrainin läpi: nostetaan takaisin SAMAAN x/z-sijaintiin,
+        // vain korkeus korjataan nollaan. Ei siis palauteta alkuun kuten T-näppäimessä.
+        Vector3 current = rb.position;
+        Vector3 fixedPos = new Vector3(current.x, 0f, current.z);
+
+        rb.position = fixedPos;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        tiltTimer = 0f;
+
+        // Suoristetaan auto ylös, mutta säilytetään nykyinen ajosuunta (yaw) sen sijaan
+        // että pakotettaisiin kiinteä 90° kuten T-pikanäppäimessä -- keskellä rataa
+        // yaw=90 osoittaisi usein väärään suuntaan.
+        Vector3 flatForward = new Vector3(transform.forward.x, 0f, transform.forward.z);
+        Quaternion uprightKeepHeading = flatForward.sqrMagnitude > 0.0001f
+            ? Quaternion.LookRotation(flatForward.normalized, Vector3.up)
+            : Quaternion.identity;
+
+        StartAutoCorrection(uprightKeepHeading);
     }
 
     void DoTeleportAsT()

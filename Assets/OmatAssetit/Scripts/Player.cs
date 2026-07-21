@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro; // Tarvitaan UI-tekstin päivittämiseen
 
+[RequireComponent(typeof(Rigidbody))]
 public class Player : MonoBehaviour
 {
     [Header("Liikkuminen")]
@@ -17,25 +18,30 @@ public class Player : MonoBehaviour
     private float boostTimer = 0f;
     private float cooldownTimer = 0f;
     private bool isBoosted = false;
+    private Rigidbody rb;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    // Viittaus suoristus/teleport-skriptiin, jotta tiedetään milloin SE ohjaa autoa
+    // eikä pelaajan omaa ohjausta pidä ottaa huomioon samaan aikaan.
+    private PlayerUprightAndShortcuts_AutoFallReset autoCorrector;
+
     void Start()
     {
+        rb = GetComponent<Rigidbody>();
+        autoCorrector = GetComponent<PlayerUprightAndShortcuts_AutoFallReset>();
         // Asetetaan pelin alussa nopeudeksi normaali perusnopeus
         currentSpeed = baseSpeed;
     }
 
-    // Update is called once per frame
+    // Update: näppäinpainallukset, ajastimet ja UI -- ei fysiikkaa, joten pysyy täällä.
     void Update()
     {
         // Jos peli ei ole käynnissä, ei tehdä mitään (alkuperäinen logiikka)
-        if(GameManager.Instance.Phase != RacePhase.Racing)
+        if (GameManager.Instance.Phase != RacePhase.Racing)
         {
             return;
         }
 
         // --- BOOST-LOGIIKKA ALKAA ---
-        // Boostin aktivointi (B-näppäin)
         if (Input.GetKeyDown(KeyCode.B) && !isBoosted && cooldownTimer <= 0f)
         {
             isBoosted = true;
@@ -43,7 +49,6 @@ public class Player : MonoBehaviour
             boostTimer = boostDuration;
         }
 
-        // Ajastimien päivitys
         if (isBoosted)
         {
             boostTimer -= Time.deltaTime;
@@ -57,11 +62,9 @@ public class Player : MonoBehaviour
         }
         else if (cooldownTimer > 0f)
         {
-            // Jäähtymisaika kuluu
             cooldownTimer -= Time.deltaTime;
         }
 
-        // UI-tekstin päivitys
         if (uiText != null)
         {
             if (isBoosted)
@@ -78,15 +81,32 @@ public class Player : MonoBehaviour
             }
         }
         // --- BOOST-LOGIIKKA LOPPUU ---
+    }
 
+    // FixedUpdate: itse liikkuminen Rigidbodyn kautta (fysiikkamoottori näkee liikkeen,
+    // Continuous Collision Detection toimii, ei enää seinien läpimenoa boostilla).
+    void FixedUpdate()
+    {
+        if (GameManager.Instance.Phase != RacePhase.Racing)
+        {
+            return;
+        }
 
-        // --- ALKUPERÄINEN LIIKKUMISLOGIIKKA ---
-        // Käytetään nyt currentSpeed-muuttujaa, joka muuttuu boostin mukaan
-        float move = Input.GetAxis("Vertical") * currentSpeed * Time.deltaTime;
-        float turn = Input.GetAxis("Horizontal") * turnSpeed * Time.deltaTime;
-        //Debug.Log(move);
+        // TÄRKEÄ KORJAUS: jos PlayerControlShortcuts_Rigidbody parhaillaan suoristaa
+        // autoa (kaatunut/ilmassa pyörinyt), ei anneta pelaajan oman ohjauksen kutsua
+        // rb.MoveRotation:ia SAMASSA FixedUpdatessa -- kaksi skriptiä joka yrittää
+        // asettaa saman Rigidbodyn rotaation joka framessa aiheuttaa juuri sen ongelman
+        // missä ohjaus "jumittuu" kunnes irrottaa napit. Korjauksen ajaksi ohjaus
+        // yksinkertaisesti pausetetaan, ja jatkuu heti kun auto on suoristunut.
+        if (autoCorrector != null && autoCorrector.IsAutoCorrecting)
+        {
+            return;
+        }
 
-        transform.Translate(Vector3.forward * move);
-        transform.Rotate(Vector3.up * turn);
+        float move = Input.GetAxis("Vertical") * currentSpeed * Time.fixedDeltaTime;
+        float turn = Input.GetAxis("Horizontal") * turnSpeed * Time.fixedDeltaTime;
+
+        rb.MovePosition(rb.position + transform.forward * move);
+        rb.MoveRotation(rb.rotation * Quaternion.Euler(0f, turn, 0f));
     }
 }
