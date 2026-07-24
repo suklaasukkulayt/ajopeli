@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+
 public class Tuomari : MonoBehaviour
 {
     public TMP_Text resultText;
@@ -7,26 +8,28 @@ public class Tuomari : MonoBehaviour
     public int kierrostenMaara = 3;
     private bool winnerDeclared = false;
 
+    [Header("Voittokamera (kun PELAAJA voittaa)")]
+    [Tooltip("Playerin sisällä oleva kamera. Jätä tyhjäksi niin skripti löytää sen automaattisesti 'Player'-tagatusta objektista.")]
+    public Transform victoryCamera;
+
+    [Tooltip("Kuinka korkealla AI-auton yläpuolella kamera leijuu voittokuvassa.")]
+    public float victoryCameraHeight = 15f;
 
     private void Start()
     {
         resultText.text = "";
     }
+
     private void OnTriggerEnter(Collider car)
     {
         CarIdentify id = car.GetComponent<CarIdentify>();
 
-        if(id == null)
+        if (id == null)
         {
             return;
         }
 
-
         LapCounter lap = car.GetComponent<LapCounter>();
-
-
-        //string winnerName = id.displayName;
-
 
         if (id.kind == CarKind.Player)
         {
@@ -40,6 +43,7 @@ public class Tuomari : MonoBehaviour
             if (!validator.AllVisitedThisLap)
             {
                 Debug.Log("Player crossed the finish line, but hasn't hit all the checkpoints!");
+                validator.ShowMissedCheckpointsMessage();
                 return;
             }
             int tmpLap = lap.lapsCompleted;
@@ -48,15 +52,71 @@ public class Tuomari : MonoBehaviour
         }
         lap.lapsCompleted++;
 
+        if (winnerDeclared == false && lap.lapsCompleted >= kierrostenMaara)
+        {
+            string winnerName = id.displayName;
+            winnerDeclared = true;
+            resultText.text = $"<mark>WINNER: {winnerName}</mark>";
+            GameManager.Instance.Phase = RacePhase.Finished;
+            Debug.Log($"WINNER: {winnerName}");
 
-    if (winnerDeclared == false && lap.lapsCompleted >= kierrostenMaara)
-     {
-        string winnerName = id.displayName;
-        winnerDeclared = true;
-        resultText.text = $"<mark>WINNER: {winnerName}</mark>";
-        GameManager.Instance.Phase = RacePhase.Finished;
-        Debug.Log($"WINNER: {winnerName}");
-        
+            // Vain kun PELAAJA voittaa: näytetään kamera AI-auton yläpuolelta,
+            // jotta näkyy kuinka kauas jälkeen AI jäi.
+            if (id.kind == CarKind.Player)
+            {
+                ShowAiGapCamera();
+            }
+        }
     }
+
+    private void ShowAiGapCamera()
+    {
+        Transform aiTransform = FindAiCarTransform();
+        if (aiTransform == null)
+        {
+            Debug.LogWarning("[Tuomari] AI-autoa ei löytynyt voittokameraa varten.");
+            return;
+        }
+
+        Transform cam = victoryCamera != null ? victoryCamera : FindPlayerCameraTransform();
+        if (cam == null)
+        {
+            Debug.LogWarning("[Tuomari] Kameraa ei löytynyt voittokameraa varten.");
+            return;
+        }
+
+        // Irrotetaan kamera Playerista (jos se on sen lapsi) jotta se voidaan vapaasti
+        // sijoittaa maailmakoordinaateissa AI-auton yläpuolelle sen sijaan että se
+        // seuraisi edelleen Playerin liikettä/rotaatiota.
+        cam.SetParent(null, true);
+        cam.position = aiTransform.position + Vector3.up * victoryCameraHeight;
+        cam.rotation = Quaternion.LookRotation(Vector3.down, aiTransform.forward);
+    }
+
+    private Transform FindAiCarTransform()
+    {
+        CarIdentify[] cars = Object.FindObjectsByType<CarIdentify>(FindObjectsSortMode.None);
+        foreach (var c in cars)
+        {
+            if (c.kind == CarKind.AI)
+            {
+                return c.transform;
+            }
+        }
+        return null;
+    }
+
+    private Transform FindPlayerCameraTransform()
+    {
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            Camera cam = player.GetComponentInChildren<Camera>();
+            if (cam != null)
+            {
+                return cam.transform;
+            }
+        }
+        return null;
     }
 }
