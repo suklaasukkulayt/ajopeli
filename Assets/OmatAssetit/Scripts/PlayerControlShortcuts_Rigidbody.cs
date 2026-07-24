@@ -19,6 +19,12 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     [Tooltip("Jos auto on kallellaan yli angleThresholdin tämän monta sekuntia yhtäjaksoisesti (esim. levossa katolla/kyljellä, pyörimisnopeus jo nollassa), korjaus käynnistyy silti tämän ajan jälkeen.")]
     public float stuckTimeThreshold = 1.5f;
 
+    [Tooltip("Kuinka kauan (s) korjauksen PÄÄTTYMISEN jälkeen odotetaan ennen kuin uusi korjaus voidaan käynnistää. Estää loputtoman jumituksen jos auto keikkuu juuri kynnysarvon rajalla (esim. reunalla) -- ilman tätä korjaus voisi käynnistyä välittömästi uudestaan eikä pelaaja saisi koskaan ohjausta takaisin.")]
+    public float correctionRetriggerCooldown = 1.0f;
+
+    [Tooltip("Jos korjaus ei ole valmistunut (ei saavuttanut tavoitekulmaa) tämän monessa sekunnissa -- esim. auto on juuttunut kiinni geometriaan eikä pääse kääntymään loppuun -- korjaus luovuttaa ja antaa ohjauksen pakolla takaisin pelaajalle. Tämä on viimeinen varmistus ettei ohjaus jää KOSKAAN pysyvästi lukkoon.")]
+    public float maxCorrectionDuration = 2.5f;
+
     [Header("Smooth auto-correction")]
     [Tooltip("Kuinka monta astetta per sekunti voidaan kääntyä automaattisessa korjauksessa. Suurempi = nopeampi korjaus.")]
     public float autoCorrectionDegreesPerSecond = 360f;
@@ -38,6 +44,8 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
     bool isAutoCorrecting = false;
     Quaternion autoTargetRotation = Quaternion.identity;
     float tiltTimer = 0f;
+    float correctionCooldownTimer = 0f;
+    float correctionElapsedTime = 0f;
 
     // Julkinen lukutila muille skripteille (esim. Player.cs), jotta ne voivat väistää
     // antamasta ohjauskomentoja silloin kun tämä skripti suoristaa autoa väkisin --
@@ -66,8 +74,16 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Aloita automaattinen korjaus, jos kallistus on liian suuri
-        if (!isAutoCorrecting && IsTiltedBeyondThreshold())
+        if (correctionCooldownTimer > 0f)
+        {
+            correctionCooldownTimer -= Time.fixedDeltaTime;
+        }
+
+        // Aloita automaattinen korjaus, jos kallistus on liian suuri JA jäähdytysaika
+        // edellisestä korjauksesta on jo kulunut umpeen -- tämä estää tilanteen jossa
+        // auto keikkuu tarkalleen kynnysarvon rajalla ja korjaus käynnistyisi uudestaan
+        // välittömästi joka kerta kun se juuri päättyi.
+        if (!isAutoCorrecting && correctionCooldownTimer <= 0f && IsTiltedBeyondThreshold())
         {
             StartAutoCorrection();
         }
@@ -188,6 +204,7 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
         autoTargetRotation = target;
         isAutoCorrecting = true;
         tiltTimer = 0f;
+        correctionElapsedTime = 0f;
 
         // Nollaa pyörimisnopeus niin ei rikkoudu slerp:illä
         rb.angularVelocity = Vector3.zero;
@@ -195,6 +212,20 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
 
     void PerformAutoCorrectionStep()
     {
+        correctionElapsedTime += Time.fixedDeltaTime;
+
+        // Turvaverkko: jos korjaus ei ole valmistunut annetussa ajassa (esim. auto on
+        // fyysisesti juuttunut kiinni geometriaan eikä pääse kääntymään tavoitteeseen asti),
+        // luovutetaan ja pakotetaan ohjaus takaisin pelaajalle -- ohjaus EI SAA KOSKAAN
+        // jäädä pysyvästi lukkoon, vaikka täydellistä suoristusta ei saataisikaan aikaan.
+        if (correctionElapsedTime >= maxCorrectionDuration)
+        {
+            rb.angularVelocity = Vector3.zero;
+            isAutoCorrecting = false;
+            correctionCooldownTimer = correctionRetriggerCooldown;
+            return;
+        }
+
         // Laske kulmaero
         float angleToTarget = Quaternion.Angle(rb.rotation, autoTargetRotation);
 
@@ -204,6 +235,7 @@ public class PlayerUprightAndShortcuts_AutoFallReset : MonoBehaviour
             rb.MoveRotation(autoTargetRotation);
             rb.angularVelocity = Vector3.zero;
             isAutoCorrecting = false;
+            correctionCooldownTimer = correctionRetriggerCooldown;
             return;
         }
 

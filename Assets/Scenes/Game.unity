@@ -3268,10 +3268,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 522a332726338424a9a7da7796ce3440,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 215670172}
-    - targetCorrespondingSourceObject: {fileID: 100000, guid: 522a332726338424a9a7da7796ce3440,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 215670174}
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 522a332726338424a9a7da7796ce3440,
         type: 3}
@@ -3356,28 +3352,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.99, y: 0.8, z: 2}
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!64 &215670172
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 215670166}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!54 &215670174
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -3404,7 +3378,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &215670176
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20534,7 +20508,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1343382153}
   serializedVersion: 5
-  m_Mass: 500
+  m_Mass: 700
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -20584,6 +20558,7 @@ MonoBehaviour:
   angleThreshold: 45
   angularVelocityMin: 0.5
   stuckTimeThreshold: 1.5
+  correctionRetriggerCooldown: 1
   autoCorrectionDegreesPerSecond: 360
   finishAngleEpsilon: 0.5
   correctOnlyYaw: 1
