@@ -3321,6 +3321,12 @@ MonoBehaviour:
   - {fileID: 172186449}
   speed: 10
   rotationSpeed: 4
+  easyModeSpeedMultiplier: 0.85
+  hardModeSpeedMultiplier: 1.15
+  easyModeStartOffsetBack: 6
+  stunImpactThreshold: 1
+  stunDuration: 1.5
+  extraSpinTorque: 8
 --- !u!114 &215670168
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20419,6 +20425,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Player
   baseSpeed: 10
   turnSpeed: 130
+  hardModeSpeedMultiplier: 0.9
   boostSpeed: 15
   boostDuration: 1.5
   boostCooldown: 7
