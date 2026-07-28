@@ -8,6 +8,10 @@ public class Player : MonoBehaviour
     public float baseSpeed = 10f;
     public float turnSpeed = 130f;
 
+    [Header("Vaikeustaso")]
+    [Tooltip("Kuinka paljon pelaajan perusnopeutta kerrotaan Hard-tasolla (alle 1 = hitaampi).")]
+    public float hardModeSpeedMultiplier = 0.9f;
+
     [Header("Boost-asetukset")]
     public float boostSpeed = 15f;
     public float boostDuration = 1.5f;
@@ -28,6 +32,14 @@ public class Player : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         autoCorrector = GetComponent<PlayerUprightAndShortcuts_AutoFallReset>();
+
+        // Vaikeustason vaikutus: Hard-tasolla pelaajan perusnopeus on hieman hitaampi.
+        // Jos DifficultyManageria ei löydy (esim. Game-sceneä testataan suoraan), käytetään Normalia.
+        if (DifficultyManager.Instance != null && DifficultyManager.Instance.SelectedDifficulty == Difficulty.Hard)
+        {
+            baseSpeed *= hardModeSpeedMultiplier;
+        }
+
         // Asetetaan pelin alussa nopeudeksi normaali perusnopeus
         currentSpeed = baseSpeed;
     }
