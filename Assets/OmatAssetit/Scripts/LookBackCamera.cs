@@ -50,6 +50,17 @@ public class LookBackCamera : MonoBehaviour
             return;
         }
 
+        // Sovelletaan vaikeustasovalitsimessa asetettu FOV, jos DifficultyManager on olemassa
+        // (esim. jos Game-sceneä testataan suoraan ilman valitsinta, tätä ei tehdä).
+        if (DifficultyManager.Instance != null)
+        {
+            Camera cam = carCamera.GetComponent<Camera>();
+            if (cam != null)
+            {
+                cam.fieldOfView = DifficultyManager.Instance.SelectedFov;
+            }
+        }
+
         forwardPosition = carCamera.localPosition;
         forwardRotation = carCamera.localRotation;
 

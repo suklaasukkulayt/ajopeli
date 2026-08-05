@@ -12,6 +12,9 @@ public class DifficultyManager : MonoBehaviour
     // Normal oletuksena, jos Game-sceneä testataan suoraan ilman valitsinta.
     public Difficulty SelectedDifficulty { get; set; } = Difficulty.Normal;
 
+    // Oletus-FOV, jos Game-sceneä testataan suoraan ilman valitsinta.
+    public float SelectedFov { get; set; } = 60f;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
