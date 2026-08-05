@@ -23,6 +23,13 @@ public class LookBackCamera : MonoBehaviour
     [Tooltip("Lisäkallistus alaspäin (asteina) taaksepäin katsottaessa, jotta auton keula näkyy paremmin kuvan alareunassa. Kokeile esim. 5-20.")]
     public float rearViewPitchOffset = 10f;
 
+    [Header("Ensimmäisen persoonan asetukset (jos First Person valittu vaikeustasovalitsimessa)")]
+    [Tooltip("Kameran paikallinen sijainti ensimmäisessä persoonassa, esim. lähellä kuljettajan paikkaa. Säädä auton mittojen mukaan.")]
+    public Vector3 firstPersonLocalPosition = new Vector3(0f, 0.9f, 0.6f);
+
+    [Tooltip("Kameran paikallinen rotaatio (Euler-kulmat) ensimmäisessä persoonassa.")]
+    public Vector3 firstPersonLocalEulerAngles = Vector3.zero;
+
     private Vector3 forwardPosition;
     private Quaternion forwardRotation;
     private Vector3 computedRearPosition;
@@ -50,7 +57,7 @@ public class LookBackCamera : MonoBehaviour
             return;
         }
 
-        // Sovelletaan vaikeustasovalitsimessa asetettu FOV, jos DifficultyManager on olemassa
+        // Sovelletaan vaikeustasovalitsimessa valittu FOV, jos DifficultyManager on olemassa
         // (esim. jos Game-sceneä testataan suoraan ilman valitsinta, tätä ei tehdä).
         if (DifficultyManager.Instance != null)
         {
@@ -58,6 +65,16 @@ public class LookBackCamera : MonoBehaviour
             if (cam != null)
             {
                 cam.fieldOfView = DifficultyManager.Instance.SelectedFov;
+            }
+
+            // Ensimmäinen persoona: asetetaan kamera kuljettajan paikalle ENNEN kuin
+            // "lepoasento" (forwardPosition/forwardRotation) tallennetaan alla -- näin
+            // katso-taakse-toiminto palaa oikein ensimmäisen persoonan asemaan, ei
+            // alkuperäiseen kolmannen persoonan asemaan.
+            if (DifficultyManager.Instance.FirstPerson)
+            {
+                carCamera.localPosition = firstPersonLocalPosition;
+                carCamera.localEulerAngles = firstPersonLocalEulerAngles;
             }
         }
 

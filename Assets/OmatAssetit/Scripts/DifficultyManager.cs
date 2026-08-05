@@ -15,6 +15,10 @@ public class DifficultyManager : MonoBehaviour
     // Oletus-FOV, jos Game-sceneä testataan suoraan ilman valitsinta.
     public float SelectedFov { get; set; } = 60f;
 
+    // Oletuksena kolmas persoona (nykyinen kameran sijainti), jos Game-sceneä
+    // testataan suoraan ilman valitsinta.
+    public bool FirstPerson { get; set; } = false;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
