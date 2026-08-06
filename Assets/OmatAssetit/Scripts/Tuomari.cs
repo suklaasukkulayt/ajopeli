@@ -1,5 +1,7 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class Tuomari : MonoBehaviour
 {
@@ -14,6 +16,12 @@ public class Tuomari : MonoBehaviour
 
     [Tooltip("Kuinka korkealla AI-auton yläpuolella kamera leijuu voittokuvassa.")]
     public float victoryCameraHeight = 15f;
+
+    [Header("Paluu päävalikkoon voiton jälkeen")]
+    [Tooltip("Kuinka monta sekuntia voiton jälkeen ennen kuin palataan päävalikkoon.")]
+    public float backToMenuDelay = 10f;
+    [Tooltip("Scene johon palataan voiton jälkeen.")]
+    public string mainMenuSceneName = "StartScreen";
 
     private void Start()
     {
@@ -66,7 +74,58 @@ public class Tuomari : MonoBehaviour
             {
                 ShowAiGapCamera();
             }
+
+            // Molemmissa tapauksissa (pelaaja TAI AI voittaa): näytetään BoostTextissä
+            // ja LapsTextissä lasku takaisin päävalikkoon.
+            StartCoroutine(BackToMainMenuCountdown());
         }
+    }
+
+    private IEnumerator BackToMainMenuCountdown()
+    {
+        TMP_Text boostText = FindBoostText();
+        TMP_Text lapsText = FindLapsText();
+
+        int secondsLeft = Mathf.CeilToInt(backToMenuDelay);
+        while (secondsLeft > 0)
+        {
+            string message = $"Returning to main menu in {secondsLeft}s";
+            if (boostText != null) boostText.text = message;
+            if (lapsText != null) lapsText.text = message;
+
+            yield return new WaitForSeconds(1f);
+            secondsLeft--;
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    private TMP_Text FindBoostText()
+    {
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            Player p = player.GetComponent<Player>();
+            if (p != null)
+            {
+                return p.uiText;
+            }
+        }
+        return null;
+    }
+
+    private TMP_Text FindLapsText()
+    {
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            PelaajanKierrosTarkastus validator = player.GetComponent<PelaajanKierrosTarkastus>();
+            if (validator != null)
+            {
+                return validator.lapsText;
+            }
+        }
+        return null;
     }
 
     private void ShowAiGapCamera()
