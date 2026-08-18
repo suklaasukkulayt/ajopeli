@@ -11061,7 +11061,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -510.17, y: -199.8}
+  m_AnchoredPosition: {x: -510.17, y: -192}
   m_SizeDelta: {x: 245.02, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &689731404
@@ -22464,7 +22464,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -510.17, y: -149.80002}
+  m_AnchoredPosition: {x: -510.17, y: -129}
   m_SizeDelta: {x: 245.02, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1420032238
@@ -27956,7 +27956,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -510.17, y: -99.8}
+  m_AnchoredPosition: {x: -510.17, y: -65.7}
   m_SizeDelta: {x: 245.0234, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1736943454
@@ -32070,6 +32070,8 @@ MonoBehaviour:
   parasIkinAikaText: {fileID: 1934935498}
   victoryCamera: {fileID: 2074171119}
   victoryCameraHeight: 15
+  backToMenuDelay: 10
+  mainMenuSceneName: StartScreen
 --- !u!4 &1974355557 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: cc02ad7ca6ce5d749911b558119a1706,

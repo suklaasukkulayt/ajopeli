@@ -1,29 +1,37 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
+using System.Collections;
 
 public class Tuomari : MonoBehaviour
 {
-    [Header("Voittoteksti")]
+    [Header("Winner Text")]
     public TMP_Text resultText;
 
-    [Header("Kierrokset")]
+    [Header("Lap Times")]
     public int kierrostenMaara = 3;
     public TMP_Text kierros1Text;
     public TMP_Text kierros2Text;
     public TMP_Text kierros3Text;
 
-    [Header("Lopputulos")]
-    [Tooltip("Nykyinen LapsText. Voiton jälkeen tähän tulee yhteisaika.")]
+    [Header("Final Result")]
+    [Tooltip("Current LapsText. After the race this shows the total race time.")]
     public TMP_Text lapsText;
-    [Tooltip("Uusi teksti, joka näyttää parhaan koskaan saadun ajan.")]
+    [Tooltip("Text that shows the best time ever achieved.")]
     public TMP_Text parasIkinAikaText;
 
-    [Header("Voittokamera (kun PELAAJA voittaa)")]
-    [Tooltip("Playerin sisällä oleva kamera. Jätä tyhjäksi niin skripti löytää sen automaattisesti 'Player'-tagatusta objektista.")]
+    [Header("Victory Camera (when PLAYER wins)")]
+    [Tooltip("Camera inside the Player. Leave empty to find it automatically on the Player-tagged object.")]
     public Transform victoryCamera;
 
-    [Tooltip("Kuinka korkealla AI-auton yläpuolella kamera leijuu voittokuvassa.")]
+    [Tooltip("How high above the AI car the camera should be during the victory view.")]
     public float victoryCameraHeight = 15f;
+
+    [Header("Return To Main Menu")]
+    [Tooltip("Seconds after the winner is declared before returning to the main menu.")]
+    public float backToMenuDelay = 10f;
+    [Tooltip("Scene to load after the countdown.")]
+    public string mainMenuSceneName = "StartScreen";
 
     private bool winnerDeclared = false;
     private bool raceTimerStarted = false;
@@ -40,14 +48,14 @@ public class Tuomari : MonoBehaviour
         if (resultText != null)
             resultText.text = "";
 
-        SetLapText(kierros1Text, 1, null);
-        SetLapText(kierros2Text, 2, null);
-        SetLapText(kierros3Text, 3, null);
-        UpdateBestTimeText();
+        // Lap time texts stay hidden until their lap has actually been completed.
+        SetLapTextVisible(kierros1Text, false);
+        SetLapTextVisible(kierros2Text, false);
+        SetLapTextVisible(kierros3Text, false);
 
-        // Inspectorissa oleva LapsText voi olla sama teksti kuin
-        // PelaajanKierrosTarkastus.lapsText. Jos ei ole asetettu,
-        // haetaan se automaattisesti Player-objektista.
+        // Best time is hidden until somebody finishes the race.
+        SetBestTimeVisible(false);
+
         if (lapsText == null)
             lapsText = FindLapsText();
     }
@@ -71,7 +79,7 @@ public class Tuomari : MonoBehaviour
         LapCounter lap = car.GetComponent<LapCounter>();
         if (lap == null)
         {
-            Debug.LogWarning("[Tuomari] Autolta puuttuu LapCounter.");
+            Debug.LogWarning("[Tuomari] Car is missing LapCounter.");
             return;
         }
 
@@ -80,7 +88,7 @@ public class Tuomari : MonoBehaviour
             var validator = car.GetComponent<PelaajanKierrosTarkastus>();
             if (validator == null)
             {
-                Debug.LogError("Puuttuu PelaajanKierrosTarkastus-skripti");
+                Debug.LogError("PelaajanKierrosTarkastus component is missing.");
                 return;
             }
 
@@ -92,8 +100,6 @@ public class Tuomari : MonoBehaviour
             }
 
             int completedLapNumber = lap.lapsCompleted + 1;
-
-            // Lasketaan hyväksytyn kierroksen aika pelaajalle.
             RecordPlayerLapTime(completedLapNumber);
 
             validator.UpdateLapsText(completedLapNumber, kierrostenMaara);
@@ -113,8 +119,7 @@ public class Tuomari : MonoBehaviour
             if (resultText != null)
                 resultText.text = $"<mark>WINNER: {winnerName}</mark>";
 
-            // LapsText näyttää voiton jälkeen yhteisajan eikä enää
-            // "Returning to main menu" -tekstiä.
+            // Keep the total race time in LapsText.
             if (lapsText == null)
                 lapsText = FindLapsText();
 
@@ -129,9 +134,10 @@ public class Tuomari : MonoBehaviour
             Debug.Log($"WINNER: {winnerName}, Race time: {totalTimeString}");
 
             if (id.kind == CarKind.Player)
-            {
                 ShowAiGapCamera();
-            }
+
+            // The return countdown is shown only in BoostText.
+            StartCoroutine(BackToMainMenuCountdown());
         }
     }
 
@@ -139,8 +145,6 @@ public class Tuomari : MonoBehaviour
     {
         if (!raceTimerStarted)
         {
-            // Turvavarmistus, jos kierrokselle päästään ennen kuin Update ehti
-            // käynnistää ajastimen.
             raceTimerStarted = true;
             raceStartTime = Time.time;
             previousLapTime = 0f;
@@ -165,17 +169,16 @@ public class Tuomari : MonoBehaviour
         }
 
         if (target != null)
+        {
             target.text = $"Lap {lapNumber}: {FormatTime(lapTime)}";
+            SetLapTextVisible(target, true);
+        }
     }
 
-    private void SetLapText(TMP_Text target, int lapNumber, float? lapTime)
+    private void SetLapTextVisible(TMP_Text target, bool visible)
     {
-        if (target == null)
-            return;
-
-        target.text = lapTime.HasValue
-            ? $"KIERROS {lapNumber}: {FormatTime(lapTime.Value)}"
-            : $"KIERROS {lapNumber}: --:--.---";
+        if (target != null && target.gameObject != null)
+            target.gameObject.SetActive(visible);
     }
 
     private string FormatTime(float seconds)
@@ -203,19 +206,46 @@ public class Tuomari : MonoBehaviour
         }
 
         if (parasIkinAikaText != null)
+        {
             parasIkinAikaText.text = $"Best time: {FormatTime(currentBest)}";
+            SetBestTimeVisible(true);
+        }
     }
 
-    private void UpdateBestTimeText()
+    private void SetBestTimeVisible(bool visible)
     {
-        if (parasIkinAikaText == null)
-            return;
+        if (parasIkinAikaText != null && parasIkinAikaText.gameObject != null)
+            parasIkinAikaText.gameObject.SetActive(visible);
+    }
 
-        float currentBest = PlayerPrefs.GetFloat(BestTimeKey, -1f);
+    private IEnumerator BackToMainMenuCountdown()
+    {
+        TMP_Text boostText = FindBoostText();
+        int secondsLeft = Mathf.CeilToInt(backToMenuDelay);
 
-        parasIkinAikaText.text = currentBest < 0f
-            ? "Best time: --:--.---"
-            : $"Best time: {FormatTime(currentBest)}";
+        while (secondsLeft > 0)
+        {
+            if (boostText != null)
+                boostText.text = $"Returning to main menu in {secondsLeft}s";
+
+            yield return new WaitForSeconds(1f);
+            secondsLeft--;
+        }
+
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
+    private TMP_Text FindBoostText()
+    {
+        GameObject player = GameObject.FindWithTag("Player");
+        if (player != null)
+        {
+            Player playerScript = player.GetComponent<Player>();
+            if (playerScript != null)
+                return playerScript.uiText;
+        }
+
+        return null;
     }
 
     private TMP_Text FindLapsText()
@@ -236,14 +266,14 @@ public class Tuomari : MonoBehaviour
         Transform aiTransform = FindAiCarTransform();
         if (aiTransform == null)
         {
-            Debug.LogWarning("[Tuomari] AI-autoa ei löytynyt voittokameraa varten.");
+            Debug.LogWarning("[Tuomari] AI car not found for victory camera.");
             return;
         }
 
         Transform cam = victoryCamera != null ? victoryCamera : FindPlayerCameraTransform();
         if (cam == null)
         {
-            Debug.LogWarning("[Tuomari] Kameraa ei löytynyt voittokameraa varten.");
+            Debug.LogWarning("[Tuomari] Camera not found for victory camera.");
             return;
         }
 

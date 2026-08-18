@@ -7,10 +7,10 @@ public class PelaajanKierrosTarkastus : MonoBehaviour
     public int checkpointCount = 11;
     public TMP_Text lapsText;
 
-    [Tooltip("Kuinka pitkään 'You didn't hit all checkpoints!' -viesti näkyy ennen kuin kierrosteksti palautuu.")]
+    [Tooltip("How long the missed-checkpoint message stays visible.")]
     public float missedCheckpointMessageDuration = 2f;
 
-    [Tooltip("Kuinka pitkään onnistuneen kierroksen jälkeen varoitusviestiä ei näytetä, vaikka maaliviiva ylitettäisiin vahingossa uudestaan.")]
+    [Tooltip("How long to suppress another missed-checkpoint message after a successful lap.")]
     public float missedCheckpointSuppressionAfterLap = 5f;
 
     private bool[] visited;
@@ -42,7 +42,7 @@ public class PelaajanKierrosTarkastus : MonoBehaviour
 
         // Ennen maalia näytetään normaalisti kierrosmäärä.
         // Tuomari.cs vaihtaa tämän lopussa yhteisaikaan.
-        lapsText.text = $"LAPS: {lastDisplayedLap}/{lastDisplayedMaxLap}";
+        lapsText.text = $"Lap: {lastDisplayedLap}/{lastDisplayedMaxLap}";
     }
 
     public void ShowMissedCheckpointsMessage()
