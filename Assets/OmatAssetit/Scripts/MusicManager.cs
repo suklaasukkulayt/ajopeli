@@ -19,6 +19,12 @@ public class MusicManager : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
 
         SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // Käynnistä musiikki heti, jos herätessä ei olla Game-scenessä
+        if (SceneManager.GetActiveScene().name != "Game")
+        {
+            audioSource.Play();
+        }
     }
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -26,6 +32,10 @@ public class MusicManager : MonoBehaviour
         if (scene.name == "Game")
         {
             audioSource.Stop();
+        }
+        else if (!audioSource.isPlaying)
+        {
+            audioSource.Play();
         }
     }
 
