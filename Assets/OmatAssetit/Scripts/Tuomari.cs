@@ -177,8 +177,8 @@ public class Tuomari : MonoBehaviour
 
     private void SetLapTextVisible(TMP_Text target, bool visible)
     {
-        if (target != null && target.gameObject != null)
-            target.gameObject.SetActive(visible);
+        if (target != null)
+            target.enabled = visible;
     }
 
     private string FormatTime(float seconds)
